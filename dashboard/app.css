@@ -141,6 +141,15 @@ tbody tr[data-selected="true"] { background: color-mix(in srgb, var(--accent) 8%
 .sandbox-controls .field input[type="range"] { min-width: 220px; accent-color: var(--accent); }
 .sandbox-note { padding: var(--step-3) var(--step-4) 0; color: var(--accent); }
 
+.topchart { margin-top: var(--step-4); padding: var(--step-5); display: grid; gap: var(--step-3); }
+.bars { display: grid; gap: var(--step-2); }
+.bar-row { display: grid; grid-template-columns: 240px 1fr 140px; align-items: center; gap: var(--step-3); text-align: left; padding: 2px var(--step-3); border: 1px solid transparent; border-radius: var(--radius-control); background: none; color: var(--ink); }
+.bar-row:hover { border-color: var(--border); }
+.bar-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { display: block; height: 12px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.bar-fill { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+.bar-row .num { text-align: right; }
+
 .table-actions { display: flex; justify-content: space-between; align-items: center; gap: var(--step-4); padding: var(--step-4) var(--step-4) 0; }
 .movers { margin-top: var(--step-4); padding: var(--step-5); display: grid; gap: var(--step-3); }
 .mover-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--step-3); }
