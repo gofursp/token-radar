@@ -1,6 +1,15 @@
-// Token Radar's plain dashboard. It reads window.RADAR (written beside dashboard/ by main.ts) and
-// renders the ranked board, a filterable table, a per-protocol detail drawer with the model's own
-// inputs and the protocol's farm plan. No network: every byte it shows is in data.js.
+// Token Radar's radar-2 dashboard. It reads window.RADAR (written beside dashboard/ by main.ts)
+// and renders the ranked board, a filterable table, a per-protocol detail drawer with the model's
+// own inputs and the protocol's farm plan, and a table of the calibrated category multiples.
+// No network: every byte it shows is in data.js.
+//
+// radar-2's model, in the page as in the program: the base multiple is the row's category
+// multiple, calibrated from the live-token protocols in that category (DATA.category_multiples),
+// falling back to the global median. The page recomputes every row from the snapshot figures
+// and checks the number board.json carries, so the page's code and the board's data are visibly
+// the same arithmetic. Farm plans are derived the same way main.ts derives them: category,
+// chains, TVL and age decide the action, the capital, the hold and every cost and time, with
+// gas priced per chain. No name is special-cased.
 (function () {
   'use strict';
 
