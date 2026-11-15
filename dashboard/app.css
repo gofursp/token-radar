@@ -136,6 +136,11 @@ tbody tr[data-selected="true"] { background: color-mix(in srgb, var(--accent) 8%
 .foot { margin-top: var(--step-6); padding-top: var(--step-4); border-top: 1px solid var(--border); }
 .foot p { color: var(--muted); font-size: 13px; }
 
+.sandbox { margin-top: var(--step-5); padding-top: var(--step-4); border-top: 1px solid var(--border); display: grid; gap: var(--step-3); }
+.sandbox-controls { display: flex; flex-wrap: wrap; align-items: end; gap: var(--step-4); }
+.sandbox-controls .field input[type="range"] { min-width: 220px; accent-color: var(--accent); }
+.sandbox-note { padding: var(--step-3) var(--step-4) 0; color: var(--accent); }
+
 @media (max-width: 900px) {
   .shell { padding: var(--step-4); }
   .lede { grid-template-columns: 1fr; gap: var(--step-4); }
