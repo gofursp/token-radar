@@ -478,8 +478,8 @@
       el('p', { class: 'sub', text: 'Ways to use this radar: open the Watchlist tab to see only the forty protocols ' +
         'the snapshot tracks first; open the Live token tab to see what the market actually pays ' +
         'for protocols that already trade; use the sandbox above to test how much the ranking ' +
-        'depends on growth versus age; and download the board as a CSV to keep your own farm ' +
-        'log beside it.' }),
+        'depends on growth versus age; download the board as a CSV to keep your own farm log ' +
+        'beside it; and open any row to see its farm plan and copy a link to it.' }),
       el('div', { class: 'sandbox' },
         el('h3', { text: 'Try the model yourself' }),
         el('p', { class: 'sub', text: 'The constants above are the submitted model. Move a dial to see how the ranking responds; the board re-sorts at once, and the detail view still checks the submitted numbers.' }),
