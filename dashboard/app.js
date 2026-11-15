@@ -475,6 +475,11 @@
       table,
       categoryBreakdown(),
       el('p', { class: 'sub', text: 'How to read the board: start with the movers if you want momentum, or with rank 1 if you want size. A high implied value means the market would pay a lot for this protocol if it launched a token at its category\'s multiple; it is not a price, and it says nothing about whether a token will ever launch. Farm the top of the board first, one protocol at a time, and keep the position open long enough to be counted.' }),
+      el('p', { class: 'sub', text: 'Ways to use this radar: open the Watchlist tab to see only the forty protocols ' +
+        'the snapshot tracks first; open the Live token tab to see what the market actually pays ' +
+        'for protocols that already trade; use the sandbox above to test how much the ranking ' +
+        'depends on growth versus age; and download the board as a CSV to keep your own farm ' +
+        'log beside it.' }),
       el('div', { class: 'sandbox' },
         el('h3', { text: 'Try the model yourself' }),
         el('p', { class: 'sub', text: 'The constants above are the submitted model. Move a dial to see how the ranking responds; the board re-sorts at once, and the detail view still checks the submitted numbers.' }),
