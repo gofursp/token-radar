@@ -141,6 +141,12 @@ tbody tr[data-selected="true"] { background: color-mix(in srgb, var(--accent) 8%
 .sandbox-controls .field input[type="range"] { min-width: 220px; accent-color: var(--accent); }
 .sandbox-note { padding: var(--step-3) var(--step-4) 0; color: var(--accent); }
 
+.movers { margin-top: var(--step-4); padding: var(--step-5); display: grid; gap: var(--step-3); }
+.mover-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--step-3); }
+.mover { display: grid; gap: 2px; text-align: left; padding: var(--step-3) var(--step-4); border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--canvas); color: var(--ink); }
+.mover:hover { border-color: var(--accent); }
+.mover-name { font-weight: 600; }
+
 @media (max-width: 900px) {
   .shell { padding: var(--step-4); }
   .lede { grid-template-columns: 1fr; gap: var(--step-4); }
