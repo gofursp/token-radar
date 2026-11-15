@@ -155,7 +155,9 @@
 
   function rows() {
     var q = state.q.trim().toLowerCase();
+    var watchlist = state.tab === 'watchlist' && DATA.watchlist ? DATA.watchlist : null;
     return DATA.rows.filter(function (r) {
+      if (watchlist !== null && watchlist.indexOf(r.slug) < 0) return false;
       if (state.category !== 'all' && r.category !== state.category) return false;
       if (!q) return true;
       var hay = [r.name, r.slug, r.category, (r.chains || []).join(' ')].join(' ').toLowerCase();
@@ -299,12 +301,13 @@
     );
     select.addEventListener('change', function () { state.category = select.value; writeHash(); render(); });
     var pre = el('button', { type: 'button', 'aria-pressed': state.tab === 'pre-token' ? 'true' : 'false', text: 'Pre-token', onclick: function () { state.tab = 'pre-token'; render(); } });
+    var watch = el('button', { type: 'button', 'aria-pressed': state.tab === 'watchlist' ? 'true' : 'false', text: 'Watchlist', onclick: function () { state.tab = 'watchlist'; render(); } });
     var live = el('button', { type: 'button', 'aria-pressed': state.tab === 'live' ? 'true' : 'false', text: 'Live token', onclick: function () { state.tab = 'live'; render(); } });
     return el('div', { class: 'controls' },
       el('div', { class: 'field' }, el('label', { for: 'q', text: 'Search' }), search),
       el('div', { class: 'field' }, el('label', { for: 'category', text: 'Category' }), select),
-      el('div', { class: 'field' }, el('span', { class: 'sub', text: 'Token status' }), el('div', { class: 'tabs' }, pre, live)),
-      el('span', { class: 'count', text: state.tab === 'pre-token' ? rows().length + ' rows shown' : DATA.live.length + ' live-token protocols' })
+      el('div', { class: 'field' }, el('span', { class: 'sub', text: 'Token status' }), el('div', { class: 'tabs' }, pre, watch, live)),
+      el('span', { class: 'count', text: state.tab === 'live' ? DATA.live.length + ' live-token protocols' : rows().length + (state.tab === 'watchlist' ? ' watchlist rows shown' : ' rows shown') })
     );
   }
 
@@ -315,6 +318,29 @@
         state.sort === key ? el('span', { 'aria-hidden': 'true', text: state.dir < 0 ? ' v' : ' ^' }) : null
       )
     );
+  }
+
+  // The board as a spreadsheet: one CSV of the rows on screen, so a farmer can sort, filter
+  // and keep the board without copying it by hand. The file is built in the browser; nothing
+  // is sent anywhere.
+  function downloadCsv(list) {
+    var cell = function (v) {
+      var s = v === null || v === undefined ? '' : String(v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    var lines = ['rank,slug,name,category,chains,tvl_usd,change_7d,age_days,implied_value_usd,base_multiple'];
+    list.forEach(function (r) {
+      lines.push([r.rank, r.slug, r.name, r.category || '', (r.chains || []).join(';'), r.tvl_usd, r.change_7d === null ? '' : r.change_7d, r.age_days === null ? '' : r.age_days, r.implied_value_usd, r.base_multiple].map(cell).join(','));
+    });
+    var blob = new Blob([lines.join('\n') + '\n'], { type: 'text/csv' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'token-radar-board.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   function boardTable() {
@@ -358,6 +384,10 @@
     });
     return el('div', { class: 'panel' },
       note,
+      el('div', { class: 'table-actions' },
+        el('span', { class: 'sub', text: state.tab === 'watchlist' ? 'The watchlist only: the forty protocols the snapshot tracks first.' : 'The full pre-token board.' }),
+        el('button', { class: 'button', type: 'button', text: 'Download these rows as CSV', onclick: function () { downloadCsv(list); } })
+      ),
       el('div', { class: 'table-wrap' },
         el('table', null,
           el('caption', { class: 'sub', text: 'Pre-token protocols, strongest implied value first. Select a row for its model and farm plan.' }),
@@ -507,8 +537,8 @@
     shell.appendChild(lede());
     shell.appendChild(movers());
     shell.appendChild(controls());
-    shell.appendChild(state.tab === 'pre-token' ? boardTable() : liveTable());
-    if (state.tab === 'pre-token') shell.appendChild(modelPanel());
+    shell.appendChild(state.tab === 'live' ? liveTable() : boardTable());
+    if (state.tab !== 'live') shell.appendChild(modelPanel());
     shell.appendChild(el('footer', { class: 'foot' },
       el('p', { class: 'sub', text: 'Data: ' + DATA.source + '. Implied values are a model, not a promise and not financial advice. Built by an agent; the uncensored model that helped build it is at superbot.gg.' })
     ));
