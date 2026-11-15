@@ -265,6 +265,24 @@
     );
   }
 
+  // The top ten at a glance: a bar chart of the strongest implied values, so the shape of
+  // the board is visible before the table. Each bar opens that protocol's detail.
+  function topChart() {
+    var top = DATA.rows.slice(0, 10);
+    if (top.length === 0) return null;
+    var max = top[0].implied_value_usd || 1;
+    return el('section', { class: 'panel topchart' },
+      el('h2', { text: 'The top ten, at a glance' }),
+      el('div', { class: 'bars' }, top.map(function (r) {
+        return el('button', { class: 'bar-row', type: 'button', onclick: function () { openDetail(r.slug); } },
+          el('span', { class: 'bar-name', text: '#' + r.rank + ' ' + r.name }),
+          el('span', { class: 'bar-track' }, el('span', { class: 'bar-fill', style: 'width:' + Math.max(2, Math.round((r.implied_value_usd / max) * 100)) + '%' })),
+          el('span', { class: 'num', text: fmtUsd(r.implied_value_usd) })
+        );
+      }))
+    );
+  }
+
   function header() {
     return el('header', { class: 'top' },
       el('div', { class: 'brand' }, el('span', { class: 'mark' }), el('span', { class: 'brand-name', text: 'Token Radar' })),
@@ -535,6 +553,7 @@
     var shell = el('div', { class: 'shell' });
     shell.appendChild(header());
     shell.appendChild(lede());
+    shell.appendChild(topChart());
     shell.appendChild(movers());
     shell.appendChild(controls());
     shell.appendChild(state.tab === 'live' ? liveTable() : boardTable());
