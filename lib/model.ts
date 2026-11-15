@@ -1,16 +1,18 @@
-// The token radar's model: one snapshot of the protocol universe in, one ranked board out.
+// The token radar's model, radar-2: one snapshot of the protocol universe in, one ranked
+// board out.
 //
-// The board covers every slug in the snapshot's watchlist (the floor, never a ceiling) and may add
-// pre-token protocols below the watchlist floor: the early rows the radar exists to find. A protocol is
-// pre-token when its index entry records no token (no market cap, no CoinGecko id, no symbol); the
-// snapshot's live-token protocols are kept apart and shown as the market's own values, never mixed into
-// the ranked board.
+// The board covers every slug in the snapshot's watchlist (the floor, never a ceiling) and
+// may add pre-token protocols below the watchlist floor: the early rows the radar exists to
+// find. A protocol is pre-token when its index entry records no token (no market cap, no
+// CoinGecko id, no symbol); the snapshot's live-token protocols are kept apart and shown as
+// the market's own values, never mixed into the ranked board.
 //
-// Implied value follows only from the snapshot's own figures. The base multiple is not one flat
-// number: it is calibrated from the snapshot itself. For every category, the live-token protocols
-// in that category give a median market-cap-to-TVL ratio; a category with fewer than three live
-// comparables falls back to the global median. Each median is shrunk toward the global median by
-// a prior weight and kept inside a band, so one outlier protocol cannot set a category's price:
+// Implied value follows only from the snapshot's own figures. The base multiple is not one
+// flat number: it is calibrated from the snapshot itself. For every category, the live-token
+// protocols in that category give a median market-cap-to-TVL ratio; a category with fewer
+// than three live comparables falls back to the global median. Each median is shrunk toward
+// the global median by a prior weight and kept inside a band, so one outlier protocol cannot
+// set a category's price:
 //
 //   multiple(cat) = band( (n x median(cat) + PRIOR_WEIGHT x global) / (n + PRIOR_WEIGHT) )
 //   base       = tvl_usd x multiple(category)
@@ -21,10 +23,12 @@
 //
 // On this snapshot the global median is 0.214 (128 live protocols); Dexs calibrate near 0.32,
 // Lending near 0.15, Liquid Staking near 0.08, RWA near 0.26, Bridge near 0.44. A flat 0.25
-// would price a bridge like a lender and a liquid-staking pool like a DEX; the calibration is
-// the difference between a ranking and a TVL table. The constants are stated in the dashboard
-// and changeable in the model sandbox. No protocol name is ever special-cased: the same
-// function scores every row.
+// would price a bridge like a lender and a liquid-staking pool like a DEX; the calibration
+// is the difference between a ranking and a TVL table. The constants are stated in the
+// dashboard and changeable in the model sandbox. No protocol name is ever special-cased:
+// the same function scores every row.
+
+// --------------------------------------------------------------------------- shapes
 
 /** The snapshot's protocol entry: exactly the ten fields the sealed input carries. */
 export interface SnapshotProtocol {
@@ -48,49 +52,6 @@ export interface Snapshot {
   protocols: SnapshotProtocol[];
   watchlist: string[];
 }
-
-/** The model's constants, as the dashboard states them and the sandbox may change them. */
-export interface ModelConstants {
-  base_multiple: number;
-  growth_weight: number;
-  growth_floor: number;
-  growth_cap: number;
-  maturity_floor: number;
-  maturity_range: number;
-  maturity_days: number;
-  unknown_age_days: number;
-  /** Live comparables a category needs before its own median is used; fewer fall back to the global median. */
-  min_comps: number;
-  /** Prior weight, in protocols, pulling each category median toward the global median. */
-  prior_weight: number;
-  /** The band a calibrated multiple is kept inside. */
-  multiple_floor: number;
-  multiple_cap: number;
-}
-
-export const MODEL: ModelConstants = {
-  base_multiple: 0.25,
-  growth_weight: 0.5,
-  growth_floor: -60,
-  growth_cap: 120,
-  maturity_floor: 0.6,
-  maturity_range: 0.4,
-  maturity_days: 1095,
-  unknown_age_days: 365,
-  min_comps: 3,
-  prior_weight: 3,
-  multiple_floor: 0.05,
-  multiple_cap: 1.0,
-};
-
-/** The model's version label: the dashboard names it and the rules quote it. */
-export const MODEL_VERSION = 'radar-2';
-
-/** How many pre-token protocols below the watchlist floor the early radar carries, by TVL. */
-export const EARLY_ROWS = 160;
-
-/** How many live-token protocols the Live token view carries, by market cap. */
-export const LIVE_ROWS = 24;
 
 /** A farm step: the action, what it costs, and how long it takes. */
 export interface FarmStep {
@@ -172,6 +133,41 @@ export interface RadarData {
   category_multiples: { category: string; multiple: number; comps: number }[];
 }
 
+/** The headline sentence's figures: how many watchlist slugs, how many rows, how many live protocols. */
+export interface BoardSummary {
+  watchlist_size: number;
+  board_size: number;
+  early_size: number;
+  live_size: number;
+}
+
+/** The model's constants, as the dashboard states them and the sandbox may change them. */
+export interface ModelConstants {
+  base_multiple: number;
+  growth_weight: number;
+  growth_floor: number;
+  growth_cap: number;
+  maturity_floor: number;
+  maturity_range: number;
+  maturity_days: number;
+  unknown_age_days: number;
+  /** Live comparables a category needs before its own median is used; fewer fall back to the global median. */
+  min_comps: number;
+  /** Prior weight, in protocols, pulling each category median toward the global median. */
+  prior_weight: number;
+  /** The band a calibrated multiple is kept inside. */
+  multiple_floor: number;
+  multiple_cap: number;
+}
+
+/** The calibration of one snapshot: the global median market-cap-to-TVL ratio of its
+ *  live-token protocols, and each category's shrunk, banded multiple. Computed from the
+ *  snapshot at run time, never from a hand-kept list. */
+export interface Calibration {
+  global: number;
+  byCategory: Map<string, { multiple: number; comps: number }>;
+}
+
 /** Why the snapshot is not one this model can score. */
 export class SnapshotError extends Error {
   constructor(message: string) {
@@ -180,11 +176,52 @@ export class SnapshotError extends Error {
   }
 }
 
+// ------------------------------------------------------------------------ constants
+
+export const MODEL: ModelConstants = {
+  base_multiple: 0.25,
+  growth_weight: 0.5,
+  growth_floor: -60,
+  growth_cap: 120,
+  maturity_floor: 0.6,
+  maturity_range: 0.4,
+  maturity_days: 1095,
+  unknown_age_days: 365,
+  min_comps: 3,
+  prior_weight: 3,
+  multiple_floor: 0.05,
+  multiple_cap: 1.0,
+};
+
+/** The model's version label: the dashboard names it and the rules quote it. */
+export const MODEL_VERSION = 'radar-2';
+
+/** How many pre-token protocols below the watchlist floor the early radar carries, by TVL. */
+export const EARLY_ROWS = 160;
+
+/** How many live-token protocols the Live token view carries, by market cap. */
+export const LIVE_ROWS = 24;
+
 const DAY_MS = 86_400_000;
+
+/** DefiLlama's version-marker rule: a name ending in a release is a pool of another protocol. */
+const VERSIONED = /\s(V\d+(\.\d+)?|v\d+(\.\d+)?|\d+\.\d+)$/;
+
+// --------------------------------------------------------------------- small helpers
 
 /** A finite number, else `fallback`. */
 function finite(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+/** Four decimal places, for the numbers the board and the page both print. */
+const round4 = (n: number): number => Math.round(n * 1e4) / 1e4;
+
+/** The middle value of a sorted list, or the mean of the middle two. */
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
 }
 
 /** A whole day count from `from` to `to`, clamped at zero; null when either date is absent or bad. */
@@ -196,19 +233,12 @@ export function ageDays(asOf: string, listedAt: string | null): number | null {
   return Math.max(0, Math.floor((a - b) / DAY_MS));
 }
 
-/** The calibration of one snapshot: the global median market-cap-to-TVL ratio of its
- *  live-token protocols, and each category's shrunk, banded multiple. Computed from the
- *  snapshot at run time, never from a hand-kept list. */
-export interface Calibration {
-  global: number;
-  byCategory: Map<string, { multiple: number; comps: number }>;
+/** The snapshot's protocols by slug. */
+function bySlug(protocols: SnapshotProtocol[]): Map<string, SnapshotProtocol> {
+  return new Map(protocols.map((p) => [p.slug, p]));
 }
 
-function median(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 1 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
-}
+// ----------------------------------------------------------------------- calibration
 
 export function calibrateMultiples(snapshot: Snapshot, model: ModelConstants): Calibration {
   const live = snapshot.protocols.filter(
@@ -247,6 +277,8 @@ export function multipleFor(category: string | null, calibration: Calibration): 
   return entry === undefined ? calibration.global : entry.multiple;
 }
 
+// --------------------------------------------------------------------------- scoring
+
 /** The three multipliers and the implied value one protocol gets under `model`, at its category's calibrated multiple. */
 export function impliedValue(protocol: SnapshotProtocol, asOf: string, model: ModelConstants, multiple: number): { implied: number; growthPct: number; growthMult: number; maturityMult: number; age: number | null; multiple: number } {
   const age = ageDays(asOf, protocol.listed_at);
@@ -260,9 +292,6 @@ export function impliedValue(protocol: SnapshotProtocol, asOf: string, model: Mo
   return { implied, growthPct, growthMult, maturityMult, age, multiple };
 }
 
-/** DefiLlama's version-marker rule: a name ending in a release is a pool of another protocol. */
-const VERSIONED = /\s(V\d+(\.\d+)?|v\d+(\.\d+)?|\d+\.\d+)$/;
-
 /** Whether a protocol records no token at all. */
 export function isPreToken(p: SnapshotProtocol): boolean {
   return p.mcap_usd === null && p.gecko_id === null && p.symbol === null;
@@ -271,19 +300,6 @@ export function isPreToken(p: SnapshotProtocol): boolean {
 /** Whether a protocol is one the board may rank: pre-token, not an exchange, not a versioned pool. */
 export function isRankable(p: SnapshotProtocol): boolean {
   return isPreToken(p) && p.category !== 'CEX' && !VERSIONED.test(p.name);
-}
-
-/** The snapshot's protocol by slug. */
-function bySlug(protocols: SnapshotProtocol[]): Map<string, SnapshotProtocol> {
-  return new Map(protocols.map((p) => [p.slug, p]));
-}
-
-/** The headline sentence's figures: how many watchlist slugs, how many rows, how many live protocols. */
-export interface BoardSummary {
-  watchlist_size: number;
-  board_size: number;
-  early_size: number;
-  live_size: number;
 }
 
 /** The protocols the board ranks, strongest first, with ranks 1..n. */
@@ -337,15 +353,7 @@ export function buildBoard(snapshot: Snapshot, model: ModelConstants = MODEL): B
   }));
 }
 
-const round4 = (n: number): number => Math.round(n * 1e4) / 1e4;
-
-/** A step as one string: its action, then its cost and time, within the gate's 20..600 characters. */
-export function stepText(step: FarmStep): string {
-  let s = `${step.text} Cost: ${step.cost}. Time: ${step.time}.`;
-  if (s.length > 600) s = `${s.slice(0, 596)}...`;
-  if (s.length < 20) s = `${s} Hold the position and check the protocol's own page.`;
-  return s;
-}
+// ------------------------------------------------------------------------ farm plans
 
 /** The first chain a protocol names, or a neutral phrase. */
 function chainOf(p: SnapshotProtocol): string {
@@ -397,6 +405,14 @@ function gasFor(chain: string): { first: string; setup: string; weekly: string }
   return { first: 'about $1 of gas for the first transaction', setup: 'about $2 of gas', weekly: 'about $1 of gas a week' };
 }
 
+/** A step as one string: its action, then its cost and time, within the gate's 20..600 characters. */
+export function stepText(step: FarmStep): string {
+  let s = `${step.text} Cost: ${step.cost}. Time: ${step.time}.`;
+  if (s.length > 600) s = `${s.slice(0, 596)}...`;
+  if (s.length < 20) s = `${s} Hold the position and check the protocol's own page.`;
+  return s;
+}
+
 /**
  * A protocol's farm plan: six steps, each an action with a cost and a time. The plan is derived from
  * the protocol's own record (category, chains, TVL, age), never from a hand-written list of names.
@@ -440,6 +456,8 @@ export function farmSteps(p: SnapshotProtocol, age: number | null): FarmStep[] {
     },
   ];
 }
+
+// ----------------------------------------------------------------- live rows and data
 
 /** The live-token protocols, by market cap, for the dashboard's Live token view. */
 export function liveRows(snapshot: Snapshot): LiveRow[] {
@@ -504,6 +522,8 @@ export function buildRadar(snapshot: Snapshot, model: ModelConstants = MODEL): {
   };
   return { board, radar };
 }
+
+// ----------------------------------------------------------------- parsing and checks
 
 /** The snapshot out of a file's text, refused unless it is the shape the model scores. */
 export function parseSnapshot(text: string): Snapshot {
