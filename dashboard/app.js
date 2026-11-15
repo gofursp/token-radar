@@ -321,10 +321,23 @@
     var pre = el('button', { type: 'button', 'aria-pressed': state.tab === 'pre-token' ? 'true' : 'false', text: 'Pre-token', onclick: function () { state.tab = 'pre-token'; render(); } });
     var watch = el('button', { type: 'button', 'aria-pressed': state.tab === 'watchlist' ? 'true' : 'false', text: 'Watchlist', onclick: function () { state.tab = 'watchlist'; render(); } });
     var live = el('button', { type: 'button', 'aria-pressed': state.tab === 'live' ? 'true' : 'false', text: 'Live token', onclick: function () { state.tab = 'live'; render(); } });
+    // One button to start over: search, category, tab and sort all return to the submitted
+    // board, so a reader who has filtered and sorted their way into a corner can get back
+    // to rank 1 in one tap.
+    var reset = el('button', { class: 'button', type: 'button', text: 'Reset filters', onclick: function () {
+      state.q = '';
+      state.category = 'all';
+      state.tab = 'pre-token';
+      state.sort = 'implied';
+      state.dir = -1;
+      writeHash();
+      render();
+    } });
     return el('div', { class: 'controls' },
       el('div', { class: 'field' }, el('label', { for: 'q', text: 'Search' }), search),
       el('div', { class: 'field' }, el('label', { for: 'category', text: 'Category' }), select),
       el('div', { class: 'field' }, el('span', { class: 'sub', text: 'Token status' }), el('div', { class: 'tabs' }, pre, watch, live)),
+      reset,
       el('span', { class: 'count', text: state.tab === 'live' ? DATA.live.length + ' live-token protocols' : rows().length + (state.tab === 'watchlist' ? ' watchlist rows shown' : ' rows shown') })
     );
   }
