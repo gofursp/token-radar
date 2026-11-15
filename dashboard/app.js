@@ -16,7 +16,7 @@
   var DATA = window.RADAR;
   if (!DATA) return;
   var app = document.getElementById('board');
-  var state = { q: '', category: 'all', tab: 'pre-token', sort: 'implied', dir: -1, selected: null };
+  var state = { q: '', category: 'all', tab: 'pre-token', sort: 'implied', dir: -1, selected: null, sandbox: { growth: null, maturity: null } };
 
   var usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
   function fmtUsd(n) {
@@ -177,6 +177,38 @@
     });
   }
 
+  // The sandbox: the reader may turn the model's two dials and watch the ranking respond.
+  // Null means "the submitted model". The board always starts from the submitted model;
+  // the sandbox only explores it, and the detail view always checks the submitted numbers.
+  function sandboxActive() {
+    return state.sandbox.growth !== null || state.sandbox.maturity !== null;
+  }
+  function sandboxModel() {
+    var m = {};
+    var k;
+    for (k in DATA.model) m[k] = DATA.model[k];
+    if (state.sandbox.growth !== null) m.growth_weight = state.sandbox.growth;
+    if (state.sandbox.maturity !== null) m.maturity_range = state.sandbox.maturity;
+    return m;
+  }
+  function displayRows() {
+    var list = sortedRows(rows());
+    if (!sandboxActive()) return list;
+    var model = sandboxModel();
+    var rescored = list.map(function (r) {
+      var copy = {};
+      var k;
+      for (k in r) copy[k] = r[k];
+      copy.implied_value_usd = impliedOf(r, model);
+      return copy;
+    });
+    rescored.sort(function (a, b) {
+      return b.implied_value_usd - a.implied_value_usd || (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0);
+    });
+    rescored.forEach(function (r, i) { r.rank = i + 1; });
+    return rescored;
+  }
+
   function header() {
     return el('header', { class: 'top' },
       el('div', { class: 'brand' }, el('span', { class: 'mark' }), el('span', { class: 'brand-name', text: 'Token Radar' })),
@@ -232,7 +264,10 @@
   }
 
   function boardTable() {
-    var list = sortedRows(rows());
+    var list = displayRows();
+    var note = sandboxActive()
+      ? el('p', { class: 'sub sandbox-note', text: 'Sandbox on: this order uses your growth weight of ' + sandboxModel().growth_weight + ' and maturity range of ' + sandboxModel().maturity_range + ' instead of the submitted model. Reset the sandbox below to return to the submitted board.' })
+      : null;
     if (list.length === 0) {
       return el('div', { class: 'panel' }, el('div', { class: 'empty' },
         el('h2', { text: 'No protocol matches that filter' }),
@@ -268,6 +303,7 @@
       tbody.appendChild(tr);
     });
     return el('div', { class: 'panel' },
+      note,
       el('div', { class: 'table-wrap' },
         el('table', null,
           el('caption', { class: 'sub', text: 'Pre-token protocols, strongest implied value first. Select a row for its model and farm plan.' }),
@@ -334,7 +370,30 @@
         'implied = round( tvl_usd x multiple(category) x (1 + clamp(change_7d, ' + m.growth_floor + ', ' + m.growth_cap + ') / 100 x ' + m.growth_weight + ') x (' + m.maturity_floor + ' + min(age_days, ' + m.maturity_days + ') / ' + m.maturity_days + ' x ' + m.maturity_range + ') )'
       ),
       el('p', { class: 'sub', text: 'TVL and seven-day growth come from the snapshot. Age is the time since the protocol was first listed, the best record of how long it has run with no token; an unlisted age uses ' + m.unknown_age_days + ' days. The global median across ' + DATA.live_size + ' live-token protocols is ' + (DATA.global_multiple !== undefined ? DATA.global_multiple : m.base_multiple) + '. The early radar is every pre-token protocol below the watchlist floor, by TVL, and the live-token protocols are set aside with their market caps shown.' }),
-      table
+      table,
+      el('div', { class: 'sandbox' },
+        el('h3', { text: 'Try the model yourself' }),
+        el('p', { class: 'sub', text: 'The constants above are the submitted model. Move a dial to see how the ranking responds; the board re-sorts at once, and the detail view still checks the submitted numbers.' }),
+        el('div', { class: 'sandbox-controls' },
+          el('div', { class: 'field' },
+            el('label', { for: 'sandbox-growth', text: 'Growth weight: ' + (state.sandbox.growth === null ? m.growth_weight + ' (submitted)' : state.sandbox.growth) }),
+            (function () {
+              var input = el('input', { type: 'range', id: 'sandbox-growth', min: '0', max: '1', step: '0.05', value: String(state.sandbox.growth === null ? m.growth_weight : state.sandbox.growth), 'aria-label': 'Growth weight' });
+              input.addEventListener('input', function () { state.sandbox.growth = parseFloat(input.value); render(); });
+              return input;
+            })()
+          ),
+          el('div', { class: 'field' },
+            el('label', { for: 'sandbox-maturity', text: 'Maturity range: ' + (state.sandbox.maturity === null ? m.maturity_range + ' (submitted)' : state.sandbox.maturity) }),
+            (function () {
+              var input = el('input', { type: 'range', id: 'sandbox-maturity', min: '0', max: '1', step: '0.05', value: String(state.sandbox.maturity === null ? m.maturity_range : state.sandbox.maturity), 'aria-label': 'Maturity range' });
+              input.addEventListener('input', function () { state.sandbox.maturity = parseFloat(input.value); render(); });
+              return input;
+            })()
+          ),
+          el('button', { class: 'button', type: 'button', text: 'Reset to the submitted model', onclick: function () { state.sandbox = { growth: null, maturity: null }; render(); } })
+        )
+      )
     );
   }
 
