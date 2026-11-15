@@ -209,6 +209,60 @@
     return rescored;
   }
 
+  // The movers: the three pre-token protocols whose TVL grew fastest in the last seven days.
+  // Computed from the board, never hand-picked; a reader who wants momentum starts here.
+  function movers() {
+    var grown = DATA.rows
+      .filter(function (r) { return r.change_7d !== null && r.change_7d !== undefined; })
+      .slice()
+      .sort(function (a, b) { return (b.change_7d || 0) - (a.change_7d || 0); })
+      .slice(0, 3);
+    if (grown.length === 0) return null;
+    return el('section', { class: 'panel movers' },
+      el('h2', { text: 'Moving fastest this week' }),
+      el('div', { class: 'mover-cards' }, grown.map(function (r) {
+        return el('button', { class: 'mover', type: 'button', onclick: function () { openDetail(r.slug); } },
+          el('span', { class: 'mover-name', text: '#' + r.rank + ' ' + r.name }),
+          el('span', { class: 'sub', text: (r.category || 'Other') + ' on ' + (r.chains && r.chains.length ? r.chains[0] : 'an unnamed chain') }),
+          el('span', { class: 'num pos', text: fmtPct(r.change_7d) + ' in 7 days' }),
+          el('span', { class: 'num', text: 'Implied ' + fmtUsd(r.implied_value_usd) })
+        );
+      }))
+    );
+  }
+
+  // The board by category: how many rows each category holds, their combined TVL, and the
+  // strongest protocol in each. A reader sees at a glance where the pre-token value sits.
+  function categoryBreakdown() {
+    var byCat = {};
+    DATA.rows.forEach(function (r) {
+      var key = r.category || 'Other';
+      var entry = byCat[key] || (byCat[key] = { rows: 0, tvl: 0, top: null });
+      entry.rows += 1;
+      entry.tvl += r.tvl_usd;
+      if (!entry.top || r.implied_value_usd > entry.top.implied_value_usd) entry.top = r;
+    });
+    var list = Object.keys(byCat).map(function (key) { return { category: key, rows: byCat[key].rows, tvl: byCat[key].tvl, top: byCat[key].top }; });
+    list.sort(function (a, b) { return b.tvl - a.tvl; });
+    return el('table', { class: 'multiples' },
+      el('caption', { class: 'sub', text: 'Where the board sits: rows, combined TVL and the strongest protocol of each category.' }),
+      el('thead', null, el('tr', null,
+        el('th', { scope: 'col', text: 'Category' }),
+        el('th', { scope: 'col', text: 'Rows' }),
+        el('th', { scope: 'col', text: 'Combined TVL' }),
+        el('th', { scope: 'col', text: 'Strongest' })
+      )),
+      el('tbody', null, list.map(function (c) {
+        return el('tr', null,
+          el('td', { text: c.category }),
+          el('td', { class: 'num', text: String(c.rows) }),
+          el('td', { class: 'num', text: fmtUsd(c.tvl) }),
+          el('td', { text: c.top.name + ' (' + fmtUsd(c.top.implied_value_usd) + ')' })
+        );
+      }))
+    );
+  }
+
   function header() {
     return el('header', { class: 'top' },
       el('div', { class: 'brand' }, el('span', { class: 'mark' }), el('span', { class: 'brand-name', text: 'Token Radar' })),
@@ -371,6 +425,8 @@
       ),
       el('p', { class: 'sub', text: 'TVL and seven-day growth come from the snapshot. Age is the time since the protocol was first listed, the best record of how long it has run with no token; an unlisted age uses ' + m.unknown_age_days + ' days. The global median across ' + DATA.live_size + ' live-token protocols is ' + (DATA.global_multiple !== undefined ? DATA.global_multiple : m.base_multiple) + '. The early radar is every pre-token protocol below the watchlist floor, by TVL, and the live-token protocols are set aside with their market caps shown.' }),
       table,
+      categoryBreakdown(),
+      el('p', { class: 'sub', text: 'How to read the board: start with the movers if you want momentum, or with rank 1 if you want size. A high implied value means the market would pay a lot for this protocol if it launched a token at its category\'s multiple; it is not a price, and it says nothing about whether a token will ever launch. Farm the top of the board first, one protocol at a time, and keep the position open long enough to be counted.' }),
       el('div', { class: 'sandbox' },
         el('h3', { text: 'Try the model yourself' }),
         el('p', { class: 'sub', text: 'The constants above are the submitted model. Move a dial to see how the ranking responds; the board re-sorts at once, and the detail view still checks the submitted numbers.' }),
@@ -449,6 +505,7 @@
     var shell = el('div', { class: 'shell' });
     shell.appendChild(header());
     shell.appendChild(lede());
+    shell.appendChild(movers());
     shell.appendChild(controls());
     shell.appendChild(state.tab === 'pre-token' ? boardTable() : liveTable());
     if (state.tab === 'pre-token') shell.appendChild(modelPanel());
