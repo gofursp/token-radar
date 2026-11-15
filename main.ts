@@ -1,14 +1,19 @@
-// A working token-radar-01 entry (Node 22, standard library only).
+// Token Radar, radar-2: a working token-radar-01 entry (Node 22, standard library only).
 //
-// The program reads the sealed snapshot from /input/snapshot.json (or --input <file|dir>), scores every
-// pre-token protocol with the model in lib/model.ts, writes the ranked board to /output/board.json, and
-// copies this repository's dashboard/ and screenshots/ to /output. Last, it writes /output/dossier.json,
-// the summary the judge reads, with the vendored make.fun library.
+// The program reads the sealed snapshot from /input/snapshot.json (or --input <file|dir>),
+// scores every pre-token protocol with the model in lib/model.ts, writes the ranked board to
+// /output/board.json, and copies this repository's dashboard/ and screenshots/ to /output.
+// Last, it writes /output/dossier.json, the summary the judge reads, with the vendored
+// make.fun library.
 //
-// The dashboard is a static page, no framework and no network: dashboard/index.html, dashboard/app.css
-// and dashboard/app.js read /output/data.js, which this program writes from the same board. A starting
-// point, not a winner: it covers the watchlist, states the model and gives every protocol a farm plan.
-// Change the model, the page or the plan; keep the gate's shape.
+// radar-2 scores with a calibrated multiple: each category's multiple is the median
+// market-cap-to-TVL ratio of that category's live-token protocols in the snapshot itself,
+// shrunk toward the global median and kept inside a band, so a bridge is priced like the
+// bridges that already trade and a lender like the lenders. The dashboard is a dark board
+// with sorting, filtering, a per-protocol detail view and a table of the calibrated
+// multiples, and every farm plan carries chain-aware gas costs. The gate's shape is kept:
+// the board covers the whole watchlist, ranks by implied value, and every farm plan has
+// concrete steps with a cost and a time.
 //
 // Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
 //   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts --input ../input/snapshot.json
